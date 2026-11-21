@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Dino Run — Skill Tree</title>
+<style>
+:root{--ink:#535353;--paper:#fff;--muted:#8b8b8b;--line:#d7d7d7}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:var(--paper);color:var(--ink);font-family:"Courier New",monospace;overflow:hidden}
+body{display:grid;place-items:center}.game{width:min(100vw,960px);padding:clamp(12px,3vw,28px);position:relative}
+.top{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:bold;letter-spacing:1px;margin-bottom:12px}.scores{display:flex;gap:22px}.scores span{min-width:72px;text-align:right}.scores b{font-weight:700}
+canvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;border-bottom:2px solid var(--ink);background:var(--paper);touch-action:none}
+.hint{text-align:center;font-size:12px;color:var(--muted);margin-top:14px;letter-spacing:.3px}
+.overlay{position:absolute;inset:34px 12px 0;background:rgba(255,255,255,.97);display:flex;align-items:center;justify-content:center;z-index:5;padding:12px}
+.panel{width:min(100%,620px);text-align:center}.eyebrow{font-size:12px;letter-spacing:3px;color:var(--muted);margin-bottom:8px}.panel h1{font-size:clamp(22px,4vw,34px);margin:8px 0 12px;letter-spacing:1px}.panel p{font-size:13px;line-height:1.6;color:var(--muted);margin:8px auto 20px;max-width:460px}
+button{font:700 13px "Courier New",monospace;letter-spacing:1px;color:var(--ink);background:var(--paper);border:2px solid var(--ink);padding:12px 20px;cursor:pointer;box-shadow:3px 3px 0 var(--ink);transition:transform .08s,box-shadow .08s}button:hover{background:#f1f1f1}button:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}button:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+.buttons{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}.small{font-size:11px;padding:9px 12px}
+.hidden{display:none!important}
+.tree-panel{width:min(100%,720px);max-height:100%;display:flex;flex-direction:column;text-align:left}.tree-head{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:12px}.tree-head h2{font-size:18px;margin:0}.bank{font-size:12px;font-weight:bold;white-space:nowrap}.tree-intro{font-size:11px;color:var(--muted);margin:0 0 10px;line-height:1.4}
+.tree-scroll{overflow:auto;max-height:min(54vh,430px);padding:6px 4px 12px}.tree{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;position:relative}
+.node{border:2px solid var(--line);padding:12px 10px;min-height:120px;display:flex;flex-direction:column;gap:5px;position:relative;background:white}.node.unlocked{border-color:var(--ink)}.node.available{border-color:var(--ink);box-shadow:2px 2px 0 var(--ink)}.node .tier{font-size:9px;color:var(--muted);letter-spacing:1px}.node h3{font-size:12px;margin:0}.node p{font-size:10px;line-height:1.35;color:var(--muted);margin:0;flex:1}.node .cost{font-size:10px;font-weight:bold;margin-top:4px}.node button{padding:7px 5px;font-size:10px;box-shadow:2px 2px 0 var(--ink);margin-top:4px}
+.tree-foot{display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:2px solid var(--ink);padding-top:12px;margin-top:8px}.tree-foot .note{font-size:10px;color:var(--muted);line-height:1.4}
+@media(max-width:560px){.top{font-size:11px}.scores{gap:10px}.scores span{min-width:58px}.tree{grid-template-columns:repeat(2,minmax(0,1fr))}.node{min-height:112px}.tree-scroll{max-height:50vh}.overlay{inset:24px 8px 0}.panel p{font-size:12px}}
+</style>
+</head>
+<body>
+<main class="game">
+<div class="top"><div>◼ DINO RUN <span style="font-weight:400;color:#999">/ SKILL TREE</span></div><div class="scores"><span>HI <b id="hi">00000</b></span><span> <b id="score">00000</b></span></div></div>
+<canvas id="game" width="900" height="220" aria-label="Dino running game"></canvas>
+<div class="hint" id="hint">SPACE / ↑ TO JUMP &nbsp; · &nbsp; ↓ TO DUCK &nbsp; · &nbsp; TAP TO JUMP</div>
+<section class="overlay" id="start">
+<div class="panel"><div class="eyebrow">CHROME OFFLINE CLASSIC — REMIX</div><h1>THE LONG RUN</h1><p>Run as far as you can. Every crash earns skill points. Spend them on permanent upgrades, unlock new abilities, and push your high score further.</p><div class="buttons"><button id="play">START RUN</button><button class="small" id="openTree">SKILL TREE</button></div><p style="font-size:10px;margin-top:22px">PIXEL PERFECT. NO END IN SIGHT.</p></div>
+</section>
+<section class="overlay hidden" id="dead">
+<div class="panel"><div class="eyebrow">RUN ENDED</div><h1>GAME OVER</h1><p id="runSummary">You earned 0 skill points.</p><div class="buttons"><button id="deadTree">UPGRADE SKILLS</button><button id="again">RUN AGAIN</button></div></div>
+</section>
+<section class="overlay hidden" id="treeOverlay">
+<div class="panel tree-panel"><div class="tree-head"><h2>SKILL TREE</h2><div class="bank">POINTS <b id="points">0</b></div><button class="small" id="closeTree">CLOSE</button></div><p class="tree-intro">Permanent upgrades. Spend points earned from each run. Unlock connected skills to reach deeper branches.</p><div class="tree-scroll"><div class="tree" id="tree"></div></div><div class="tree-foot"><div class="note">Your upgrades are saved on this device.<br>Earn more points by surviving longer.</div><button id="treeRun">BACK TO RUN</button></div></div>
+</section>
+</main>
+<script>
+(()=>{'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+const $=id=>document.getElementById(id);
+const W=900,H=220,ground=176;
+let state='start',last=0,score=0,runPoints=0,speed=6,world=0,spawn=0,obstacles=[],clouds=[],dust=[],frame=0;
+let hi=Number(localStorage.dinoHi||0),bank=Number(localStorage.dinoPoints||0);
+const defaults={jump:0,legs:0,focus:0,air:0,shield:0,bonus:0,duck:0,magnet:0,heart:0};
+let skills={...defaults,...JSON.parse(localStorage.dinoSkills||'{}')};
+const skillList=[
+{id:'jump',name:'SPRING LEGS',desc:'Jump higher and clear wider gaps.',cost:1,max:3,requires:[],tier:1},
+{id:'legs',name:'QUICK FEET',desc:'Run faster and build score quicker.',cost:2,max:4,requires:['jump'],tier:2},
+{id:'focus',name:'SCORE SENSE',desc:'Earn more skill points per run.',cost:2,max:3,requires:['jump'],tier:2},
+{id:'air',name:'AIR CONTROL',desc:'Stay airborne a little longer.',cost:3,max:3,requires:['legs'],tier:3},
+{id:'shield',name:'PIXEL SHIELD',desc:'Block one collision each run.',cost:4,max:2,requires:['focus'],tier:3},
+{id:'bonus',name:'MILESTONE BONUS',desc:'Extra points for every distance milestone.',cost:4,max:3,requires:['focus'],tier:3},
+{id:'duck',name:'LOW PROFILE',desc:'Duck faster and stay low longer.',cost:2,max:3,requires:['jump'],tier:2},
+{id:'magnet',name:'POINT MAGNET',desc:'Find extra skill points on long runs.',cost:5,max:3,requires:['bonus'],tier:4},
+{id:'heart',name:'SECOND CHANCE',desc:'One emergency recovery per run.',cost:6,max:1,requires:['shield','air'],tier:4}
+];
+function save(){localStorage.dinoSkills=JSON.stringify(skills);localStorage.dinoPoints=bank;localStorage.dinoHi=hi}
+function fmt(n){return Math.floor(n).toString().padStart(5,'0')}
+function updateHud(){$('score').textContent=fmt(score);$('hi').textContent=fmt(hi);$('points').textContent=bank}
+function unlocked(id){return skills[id]>0}
+function cost(s){return s.cost*(skills[s.id]+1)}
+function canBuy(s){return skills[s.id]<s.max&&bank>=cost(s)&&s.requires.every(unlocked)}
+function renderTree(){
+$('tree').innerHTML='';
+skillList.forEach(s=>{
+const lv=skills[s.id],ready=s.requires.every(unlocked),el=document.createElement('article');
+el.className='node '+(lv?'unlocked ':'')+(canBuy(s)?'available':'');
+const req=s.requires.length?'REQ: '+s.requires.map(id=>skillList.find(x=>x.id===id).name).join(' + '):'STARTER SKILL';
+el.innerHTML='<div class="tier">TIER '+s.tier+' · '+(lv?'LEVEL '+lv+'/'+s.max:req)+'</div><h3>'+s.name+'</h3><p>'+s.desc+'</p><div class="cost">'+(lv>=s.max?'MAXED':ready?'COST '+cost(s)+' POINTS':'LOCKED')+'</div>';
+const b=document.createElement('button');b.textContent=lv>=s.max?'MAXED':ready?'UNLOCK / UPGRADE':'LOCKED';b.disabled=!canBuy(s);b.onclick=()=>{if(!canBuy(s))return;bank-=cost(s);skills[s.id]++;save();renderTree();updateHud()};el.appendChild(b);$('tree').appendChild(el)
+});
+$('points').textContent=bank
+}
+function showTree(from){renderTree();$('treeOverlay').classList.remove('hidden');if(from==='dead')$('dead').classList.add('hidden');}
+function hideTree(){ $('treeOverlay').classList.add('hidden');if(state==='dead')$('dead').classList.remove('hidden');else if(state==='start')$('start').classList.remove('hidden');}
+$('openTree').onclick=()=>showTree('start');$('deadTree').onclick=()=>showTree('dead');$('closeTree').onclick=hideTree;
+$('treeRun').onclick=()=>{hideTree();if(state==='dead')startRun();else if(state==='start')startRun()};
+function startRun(){state='run';score=0;runPoints=0;world=0;speed=6+skills.legs*.45;spawn=55;obstacles=[];dust=[];frame=0;dino.y=ground;dino.v=0;dino.duck=false;dino.shield=skills.shield>0;dino.revive=skills.heart>0;$('start').classList.add('hidden');$('dead').classList.add('hidden');$('treeOverlay').classList.add('hidden');last=performance.now();updateHud()}
+$('play').onclick=startRun;$('again').onclick=startRun;
+const dino={x:95,y:ground,v:0,duck:false,shield:false,revive:false};
+function rect(x,y,w,h){ctx.fillRect(Math.round(x),Math.round(y),w,h)}
+function drawDino(x,y,duck,leg){
+ctx.fillStyle='#535353';
+if(duck){rect(x,y+17,48,20);rect(x+29,y+5,24,22);rect(x+45,y+2,12,9);rect(x+50,y+9,4,4);rect(x-7,y+23,12,7);rect(x+12,y+34,9,7);rect(x+34,y+34,9,7);if(leg){rect(x+12,y+34,6,4);rect(x+34,y+34,6,4)}}
+else{rect(x+12,y+16,27,29);rect(x+27,y+2,27,24);rect(x+46,y+0,17,12);rect(x+51,y+5,4,4);rect(x+6,y+29,12,6);rect(x+0,y+34,13,6);rect(x+8,y+42,8,12);rect(x+27,y+42,8,12);if(leg){rect(x+5,y+52,14,4);rect(x+25,y+52,14,4)}else{rect(x+9,y+48,5,8);rect(x+29,y+48,5,8)}}
+}
+function drawCactus(o){ctx.fillStyle='#535353';let x=o.x,y=ground-o.h;rect(x,y,o.w,o.h);rect(x-9,y+o.h*.42,10,7);rect(x-9,y+o.h*.25,6,o.h*.2);rect(x+o.w-1,y+o.h*.55,9,7);rect(x+o.w+3,y+o.h*.32,6,o.h*.25)}
+function drawBird(o){ctx.fillStyle='#535353';rect(o.x,o.y,42,14);rect(o.x+10,o.y-8,21,10);rect(o.x+34,o.y-3,12,5);rect(o.x+15,o.y+12,5,8);rect(o.x+28,o.y+12,5,8);if(Math.floor(frame/8)%2){rect(o.x+7,o.y-12,18,6);rect(o.x+23,o.y-6,12,5)}else{rect(o.x+7,o.y+10,18,6);rect(o.x+23,o.y+4,12,5)}}
+function addObstacle(){let bird=score>450&&Math.random()<.32;let h=bird?18+Math.random()*15:32+Math.random()*28,w=bird?44:16+Math.random()*18;obstacles.push({x:W+20,w,h,bird,y:bird?ground-42-Math.random()*42:ground-h})}
+function endRun(){if(state!=='run')return;state='dead';let base=Math.floor(score/180)+Math.floor(runPoints);let earn=Math.max(1,base);bank+=earn;save();$('runSummary').textContent='Distance '+fmt(score)+' · Earned '+earn+' skill point'+(earn===1?'':'s')+'. Total points: '+bank+'.';$('dead').classList.remove('hidden');updateHud()}
+function hit(){if(dino.shield){dino.shield=false;obstacles.shift();for(let i=0;i<16;i++)dust.push({x:dino.x+25,y:dino.y+30,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,life:20});return}
+if(dino.revive){dino.revive=false;obstacles.shift();dino.v=-10;dino.y=ground-30;return}endRun()}
+function update(dt){
+frame++;let f=dt/16.67;speed=Math.min(15,6+skills.legs*.45+score/2400);world+=speed*f;score+=speed*f*(1+skills.focus*.08);runPoints+=speed*f*(skills.focus*.018);
+spawn-=f;if(spawn<=0){addObstacle();spawn=58+Math.random()*65-speed*2}
+if(Math.random()<.018*f)clouds.push({x:W+10,y:20+Math.random()*65,w:35+Math.random()*45});
+clouds.forEach(c=>c.x-=speed*.25*f);clouds=clouds.filter(c=>c.x>-100);
+obstacles.forEach(o=>o.x-=speed*f);obstacles=obstacles.filter(o=>o.x>-80);
+if(!dino.duck){dino.v+=.62*f*(1+skills.air*.06);dino.y+=dino.v*f;if(dino.y>=ground){dino.y=ground;dino.v=0}}
+const dx=dino.x+(dino.duck?2:8),dw=dino.duck?43:34,dy=dino.y+(dino.duck?18:8),dh=dino.duck?28:43;
+for(const o of obstacles){let oy=o.bird?o.y:o.y;let oh=o.bird?24:o.h;if(dx+dw>o.x+3&&dx<o.x+o.w-3&&dy+dh>oy+3&&dy<oy+oh-3){hit();break}}
+dust.forEach(p=>{p.x+=p.vx*f;p.y+=p.vy*f;p.life-=f});dust=dust.filter(p=>p.life>0);
+if(Math.floor(score/1000)>Math.floor((score-speed*f)/1000)){let bonus=1+skills.bonus;bank+=bonus;runPoints+=skills.magnet*.25;save();updateHud()}
+if(score>hi){hi=score;localStorage.dinoHi=hi}
+updateHud()
+}
+function draw(){
+ctx.clearRect(0,0,W,H);ctx.fillStyle='#535353';
+clouds.forEach(c=>{rect(c.x,c.y,c.w,5);rect(c.x+8,c.y-5,c.w*.55,7);rect(c.x+20,c.y+5,c.w*.6,4)});
+ctx.fillStyle='#b7b7b7';for(let i=0;i<18;i++){let x=(i*83-world*.75)%W;if(x<0)x+=W;rect(x,ground+14,2,2)}
+ctx.fillStyle='#535353';rect(0,ground+2,W,2);
+for(let i=0;i<16;i++){let x=(i*67-world)%W;if(x<0)x+=W;rect(x,ground+8,9,2)}
+obstacles.forEach(o=>o.bird?drawBird(o):drawCactus(o));
+drawDino(dino.x,dino.y,dino.duck,Math.floor(frame/6)%2);
+if(dino.shield){ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(dino.x+27,dino.y+28,40,0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}
+dust.forEach(p=>{ctx.fillStyle='#888';rect(p.x,p.y,4,4)});
+if(state==='start'||state==='dead'){ctx.fillStyle='#535353';ctx.font='12px Courier New';ctx.fillText('PRESS SPACE TO RUN',W/2-75,ground-70)}
+}
+function loop(t){let dt=Math.min(34,t-(last||t));last=t;if(state==='run')update(dt);draw();requestAnimationFrame(loop)}
+function jump(){if(state==='start'){startRun();return}if(state==='dead'){startRun();return}if(state!=='run')return;if(dino.y>=ground-1){dino.v=-(10.5+skills.jump*1.15);dino.y-=1;dino.duck=false;for(let i=0;i<5;i++)dust.push({x:dino.x+20,y:ground+6,vx:-Math.random()*3,vy:-Math.random()*2,life:14})}}
+function setDuck(on){if(state==='run'&&dino.y>=ground-1)dino.duck=on}
+document.addEventListener('keydown',e=>{if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='Space'||e.code==='ArrowUp')jump();if(e.code==='ArrowDown')setDuck(true);if(e.code==='Escape'&&!$('treeOverlay').classList.contains('hidden'))hideTree()});
+document.addEventListener('keyup',e=>{if(e.code==='ArrowDown')setDuck(false)});
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')jump()});
+canvas.addEventListener('pointerup',()=>setDuck(false));
+canvas.addEventListener('touchstart',e=>{if(e.touches.length&&e.touches[0].clientY>innerHeight*.65)setDuck(true)},{passive:true});
+updateHud();draw();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
