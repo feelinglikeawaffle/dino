@@ -73,6 +73,7 @@ const req=s.requires.length?'REQ: '+s.requires.map(id=>skillList.find(x=>x.id===
 el.innerHTML='<div class="tier">TIER '+s.tier+' · '+(lv?'LEVEL '+lv+'/'+s.max:req)+'</div><h3>'+s.name+'</h3><p>'+s.desc+'</p><div class="cost">'+(lv>=s.max?'MAXED':ready?'COST '+cost(s)+' POINTS':'LOCKED')+'</div>';
 const b=document.createElement('button');b.textContent=lv>=s.max?'MAXED':ready?'UNLOCK / UPGRADE':'LOCKED';b.disabled=!canBuy(s);b.onclick=()=>{if(!canBuy(s))return;bank-=cost(s);skills[s.id]++;save();renderTree();updateHud()};el.appendChild(b);$('tree').appendChild(el)
 });
+const links=document.createElementNS('http://www.w3.org/2000/svg','svg');links.setAttribute('class','links');links.setAttribute('aria-hidden','true');links.setAttribute('viewBox','0 0 '+$('tree').clientWidth+' '+$('tree').scrollHeight);links.setAttribute('preserveAspectRatio','none');$('tree').prepend(links);const edges=[['jump','legs'],['jump','focus'],['jump','duck'],['legs','air'],['focus','shield'],['focus','bonus'],['bonus','magnet'],['air','heart'],['shield','heart']];const box=$('tree').getBoundingClientRect();edges.forEach(([a,b])=>{const A=$('tree').querySelector('[data-skill="'+a+'"]'),B=$('tree').querySelector('[data-skill="'+b+'"]');if(!A||!B)return;const ar=A.getBoundingClientRect(),br=B.getBoundingClientRect(),x1=ar.left-box.left+ar.width/2,y1=ar.top-box.top+ar.height/2,x2=br.left-box.left+br.width/2,y2=br.top-box.top+br.height/2,p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d','M '+x1+' '+y1+' C '+x1+' '+((y1+y2)/2)+', '+x2+' '+((y1+y2)/2)+', '+x2+' '+y2);links.appendChild(p)});
 $('points').textContent=bank
 }
 function showTree(from){renderTree();$('treeOverlay').classList.remove('hidden');if(from==='dead')$('dead').classList.add('hidden');}
@@ -84,7 +85,7 @@ $('play').onclick=startRun;$('again').onclick=startRun;
 const dino={x:95,y:ground,v:0,duck:false,shield:false,revive:false};
 function rect(x,y,w,h){ctx.fillRect(Math.round(x),Math.round(y),w,h)}
 function drawDino(x,y,duck,leg){
-ctx.fillStyle='#535353';
+y-=duck?41:54;ctx.fillStyle='#535353';
 if(duck){rect(x,y+17,48,20);rect(x+29,y+5,24,22);rect(x+45,y+2,12,9);rect(x+50,y+9,4,4);rect(x-7,y+23,12,7);rect(x+12,y+34,9,7);rect(x+34,y+34,9,7);if(leg){rect(x+12,y+34,6,4);rect(x+34,y+34,6,4)}}
 else{rect(x+12,y+16,27,29);rect(x+27,y+2,27,24);rect(x+46,y+0,17,12);rect(x+51,y+5,4,4);rect(x+6,y+29,12,6);rect(x+0,y+34,13,6);rect(x+8,y+42,8,12);rect(x+27,y+42,8,12);if(leg){rect(x+5,y+52,14,4);rect(x+25,y+52,14,4)}else{rect(x+9,y+48,5,8);rect(x+29,y+48,5,8)}}
 }
@@ -116,7 +117,7 @@ ctx.fillStyle='#535353';rect(0,ground+2,W,2);
 for(let i=0;i<16;i++){let x=(i*67-world)%W;if(x<0)x+=W;rect(x,ground+8,9,2)}
 obstacles.forEach(o=>o.bird?drawBird(o):drawCactus(o));
 drawDino(dino.x,dino.y,dino.duck,Math.floor(frame/6)%2);
-if(dino.shield){ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(dino.x+27,dino.y+28,40,0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}
+if(dino.shield){ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(dino.x+27,dino.y-27,40,0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}
 dust.forEach(p=>{ctx.fillStyle='#888';rect(p.x,p.y,4,4)});
 if(state==='start'||state==='dead'){ctx.fillStyle='#535353';ctx.font='12px Courier New';ctx.fillText('PRESS SPACE TO RUN',W/2-75,ground-70)}
 }
