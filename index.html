@@ -16,7 +16,7 @@ button{font:700 13px "Courier New",monospace;letter-spacing:1px;color:var(--ink)
 .buttons{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}.small{font-size:11px;padding:9px 12px}
 .hidden{display:none!important}
 .tree-panel{width:min(100%,720px);max-height:100%;display:flex;flex-direction:column;text-align:left}.tree-head{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:12px}.tree-head h2{font-size:18px;margin:0}.bank{font-size:12px;font-weight:bold;white-space:nowrap}.tree-intro{font-size:11px;color:var(--muted);margin:0 0 10px;line-height:1.4}
-.tree-scroll{overflow:auto;max-height:min(54vh,430px);padding:6px 4px 12px}.tree{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;position:relative}
+.tree-scroll{overflow:auto;max-height:min(54vh,430px);padding:6px 4px 12px}.tree{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(4,minmax(112px,auto));gap:18px 12px;position:relative;isolation:isolate}.tree .links{position:absolute;inset:0;width:100%;height:100%;z-index:-1;overflow:visible}.tree .links path{fill:none;stroke:#bcbcbc;stroke-width:2;stroke-dasharray:5 4}
 .node{border:2px solid var(--line);padding:12px 10px;min-height:120px;display:flex;flex-direction:column;gap:5px;position:relative;background:white}.node.unlocked{border-color:var(--ink)}.node.available{border-color:var(--ink);box-shadow:2px 2px 0 var(--ink)}.node .tier{font-size:9px;color:var(--muted);letter-spacing:1px}.node h3{font-size:12px;margin:0}.node p{font-size:10px;line-height:1.35;color:var(--muted);margin:0;flex:1}.node .cost{font-size:10px;font-weight:bold;margin-top:4px}.node button{padding:7px 5px;font-size:10px;box-shadow:2px 2px 0 var(--ink);margin-top:4px}
 .tree-foot{display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:2px solid var(--ink);padding-top:12px;margin-top:8px}.tree-foot .note{font-size:10px;color:var(--muted);line-height:1.4}
 @media(max-width:560px){.top{font-size:11px}.scores{gap:10px}.scores span{min-width:58px}.tree{grid-template-columns:repeat(2,minmax(0,1fr))}.node{min-height:112px}.tree-scroll{max-height:50vh}.overlay{inset:24px 8px 0}.panel p{font-size:12px}}
@@ -68,7 +68,7 @@ function renderTree(){
 $('tree').innerHTML='';
 skillList.forEach(s=>{
 const lv=skills[s.id],ready=s.requires.every(unlocked),el=document.createElement('article');
-el.className='node '+(lv?'unlocked ':'')+(canBuy(s)?'available':'');
+el.className='node '+(lv?'unlocked ':'')+(canBuy(s)?'available':'');el.dataset.skill=s.id;const slots={jump:[2,1],legs:[1,2],focus:[2,2],duck:[3,2],air:[1,3],shield:[2,3],bonus:[3,3],magnet:[3,4],heart:[1,4]};el.style.gridColumn=slots[s.id][0];el.style.gridRow=slots[s.id][1];
 const req=s.requires.length?'REQ: '+s.requires.map(id=>skillList.find(x=>x.id===id).name).join(' + '):'STARTER SKILL';
 el.innerHTML='<div class="tier">TIER '+s.tier+' · '+(lv?'LEVEL '+lv+'/'+s.max:req)+'</div><h3>'+s.name+'</h3><p>'+s.desc+'</p><div class="cost">'+(lv>=s.max?'MAXED':ready?'COST '+cost(s)+' POINTS':'LOCKED')+'</div>';
 const b=document.createElement('button');b.textContent=lv>=s.max?'MAXED':ready?'UNLOCK / UPGRADE':'LOCKED';b.disabled=!canBuy(s);b.onclick=()=>{if(!canBuy(s))return;bank-=cost(s);skills[s.id]++;save();renderTree();updateHud()};el.appendChild(b);$('tree').appendChild(el)
@@ -91,20 +91,20 @@ else{rect(x+12,y+16,27,29);rect(x+27,y+2,27,24);rect(x+46,y+0,17,12);rect(x+51,y
 function drawCactus(o){ctx.fillStyle='#535353';let x=o.x,y=ground-o.h;rect(x,y,o.w,o.h);rect(x-9,y+o.h*.42,10,7);rect(x-9,y+o.h*.25,6,o.h*.2);rect(x+o.w-1,y+o.h*.55,9,7);rect(x+o.w+3,y+o.h*.32,6,o.h*.25)}
 function drawBird(o){ctx.fillStyle='#535353';rect(o.x,o.y,42,14);rect(o.x+10,o.y-8,21,10);rect(o.x+34,o.y-3,12,5);rect(o.x+15,o.y+12,5,8);rect(o.x+28,o.y+12,5,8);if(Math.floor(frame/8)%2){rect(o.x+7,o.y-12,18,6);rect(o.x+23,o.y-6,12,5)}else{rect(o.x+7,o.y+10,18,6);rect(o.x+23,o.y+4,12,5)}}
 function addObstacle(){let bird=score>450&&Math.random()<.32;let h=bird?18+Math.random()*15:32+Math.random()*28,w=bird?44:16+Math.random()*18;obstacles.push({x:W+20,w,h,bird,y:bird?ground-42-Math.random()*42:ground-h})}
-function endRun(){if(state!=='run')return;state='dead';let base=Math.floor(score/180)+Math.floor(runPoints);let earn=Math.max(1,base);bank+=earn;save();$('runSummary').textContent='Distance '+fmt(score)+' · Earned '+earn+' skill point'+(earn===1?'':'s')+'. Total points: '+bank+'.';$('dead').classList.remove('hidden');updateHud()}
+function endRun(){if(state!=='run')return;state='dead';let base=Math.floor(score/500)*(1+skills.focus*.15)+Math.floor(skills.bonus*Math.floor(score/1500));let earn=Math.max(1,Math.floor(base));bank+=earn;save();$('runSummary').textContent='Distance '+fmt(score)+' · Earned '+earn+' skill point'+(earn===1?'':'s')+'. Total points: '+bank+'.';$('dead').classList.remove('hidden');updateHud()}
 function hit(){if(dino.shield){dino.shield=false;obstacles.shift();for(let i=0;i<16;i++)dust.push({x:dino.x+25,y:dino.y+30,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,life:20});return}
 if(dino.revive){dino.revive=false;obstacles.shift();dino.v=-10;dino.y=ground-30;return}endRun()}
 function update(dt){
-frame++;let f=dt/16.67;speed=Math.min(15,6+skills.legs*.45+score/2400);world+=speed*f;score+=speed*f*(1+skills.focus*.08);runPoints+=speed*f*(skills.focus*.018);
+frame++;let f=dt/16.67;speed=Math.min(15,6+skills.legs*.45+score/2400);world+=speed*f;score+=speed*f*(1+skills.focus*.08);
 spawn-=f;if(spawn<=0){addObstacle();spawn=58+Math.random()*65-speed*2}
 if(Math.random()<.018*f)clouds.push({x:W+10,y:20+Math.random()*65,w:35+Math.random()*45});
 clouds.forEach(c=>c.x-=speed*.25*f);clouds=clouds.filter(c=>c.x>-100);
 obstacles.forEach(o=>o.x-=speed*f);obstacles=obstacles.filter(o=>o.x>-80);
 if(!dino.duck){dino.v+=.62*f*(1+skills.air*.06);dino.y+=dino.v*f;if(dino.y>=ground){dino.y=ground;dino.v=0}}
-const dx=dino.x+(dino.duck?2:8),dw=dino.duck?43:34,dy=dino.y+(dino.duck?18:8),dh=dino.duck?28:43;
+const dx=dino.x+(dino.duck?2:8),dw=dino.duck?43:34,dy=dino.y-(dino.duck?30:46),dh=dino.duck?28:42;
 for(const o of obstacles){let oy=o.bird?o.y:o.y;let oh=o.bird?24:o.h;if(dx+dw>o.x+3&&dx<o.x+o.w-3&&dy+dh>oy+3&&dy<oy+oh-3){hit();break}}
 dust.forEach(p=>{p.x+=p.vx*f;p.y+=p.vy*f;p.life-=f});dust=dust.filter(p=>p.life>0);
-if(Math.floor(score/1000)>Math.floor((score-speed*f)/1000)){let bonus=1+skills.bonus;bank+=bonus;runPoints+=skills.magnet*.25;save();updateHud()}
+
 if(score>hi){hi=score;localStorage.dinoHi=hi}
 updateHud()
 }
